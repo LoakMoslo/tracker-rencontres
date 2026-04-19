@@ -688,21 +688,27 @@ function showToast(msg, kind='ok'){
 
 // ─── START ─────────────────────────────────────────────────────────────────
 async function init() {
-  // 1. Données injectées par N8N au chargement (source de vérité)
-  if (window.__INITIAL_DATA__ && window.__INITIAL_DATA__.types && window.__INITIAL_DATA__.types.length > 0) {
-    db = window.__INITIAL_DATA__;
-    save();
-    renderTypeBar();
-    selectType(db.types[0].id);
-    return;
-  }
-  // 2. Fallback : localStorage si pas de données injectées
+  // 1. Affiche immédiatement depuis localStorage (UI instantanée)
   const hasLocal = loadLocal();
   if (hasLocal && db.types.length > 0) {
     renderTypeBar();
     selectType(db.types[0].id);
   } else {
     goManage();
+  }
+  // 2. Charge les vraies données depuis N8N en arrière-plan
+  try {
+    const res = await fetch(WEBHOOK_URL + '-data');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const remote = await res.json();
+    if (remote && remote.types && remote.types.length > 0) {
+      db = remote;
+      save();
+      renderTypeBar();
+      selectType(db.types[0].id);
+    }
+  } catch(e) {
+    // Silencieux — localStorage suffit en mode offline
   }
 }
 init();
