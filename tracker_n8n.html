@@ -317,7 +317,11 @@ function ensureTodaySession(){
   const d  = db.data[activeTypeId];
   const ex = d.sessions.find(s=>s.date===iso);
   if (ex) { pIds.forEach(id=>{ if(!ex.playerIds.includes(id)) ex.playerIds.push(id); }); }
-  else if (pIds.length>0) d.sessions.push({date:iso, playerIds:pIds});
+  else if (pIds.length>0) {
+    d.sessions.push({date:iso, playerIds:pIds});
+    // Persiste la session dans Sheets
+    api({action:'add_session', type:typeName(), date:iso, player_ids:pIds.join(',')});
+  }
 }
 function typeName(){ return (db.types.find(t=>t.id===activeTypeId)||{}).name || ''; }
 
