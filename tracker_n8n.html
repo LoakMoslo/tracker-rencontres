@@ -302,7 +302,7 @@ function todayStr()   { return new Date().toDateString(); }
 function todayISO()   { return new Date().toISOString().split('T')[0]; }
 function sessionWins(pid){ return td().matches.filter(m=>m.winner===pid&&new Date(m.date).toDateString()===todayStr()).length; }
 function totalSessions(pid){ return td().sessions.filter(s=>s.playerIds.includes(pid)).length; }
-function coPresence(a,b){ return td().sessions.filter(s=>s.playerIds.includes(a)&&s.playerIds.includes(b)).length; }
+function coPresence(a,b){ return td().matches.filter(m=>{ const ids = m.player_ids ? m.player_ids.split(",").map(Number) : []; return ids.includes(a)&&ids.includes(b); }).length; }
 function playerRatio(pid){
   const sess  = td().sessions.filter(s=>s.playerIds.includes(pid));
   const dates = new Set(sess.map(s=>s.date));
