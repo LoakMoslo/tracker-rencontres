@@ -234,6 +234,10 @@ input[type=text]:focus{border-color:var(--color-border-primary)}
 <script>
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const WEBHOOK_URL = 'https://n8n.septeo.fr/webhook/tracker';
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
 // ───────────────────────────────────────────────────────────────────────────
 
 const EMOJIS = ['🎯','🏓','🎱','🃏','♟️','🎳','🏸','⚽','🎮','🏆','🎲','🥊'];
@@ -253,11 +257,11 @@ let syncingWin     = null;
 
 // ─── PERSISTANCE LOCALE ────────────────────────────────────────────────────
 function save() {
-  try { localStorage.setItem('tracker_n8n', JSON.stringify(db)); } catch(e) {}
+  try { store.set('tracker_n8n', JSON.stringify(db)); } catch(e) {}
 }
 function loadLocal() {
   try {
-    const d = localStorage.getItem('tracker_n8n');
+    const d = store.get('tracker_n8n');
     if (d) { db = JSON.parse(d); return true; }
   } catch(e) {}
   return false;
