@@ -483,6 +483,9 @@ function selectAll(){ td().players.forEach(p=>present.add(p.id)); renderRencontr
 function selectNone(){ present.clear(); renderRencontre(); }
 
 async function addSessionWin(pid){
+  // Bloque le bouton pendant la synchro
+  const btn = document.querySelector('.plus-btn[onclick*="'+pid+'"]');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }
   ensureTodaySession();
   const match={id:Date.now(), date:new Date().toISOString(), winner:pid};
   db.data[activeTypeId].matches.push(match);
@@ -491,6 +494,8 @@ async function addSessionWin(pid){
   showToast('+1 pour '+playerById(pid)?.name);
   const p=playerById(pid);
   await api({action:'add_win', type:typeName(), player_id:pid, player_name:p?.name, match_id:match.id, date:match.date});
+  // Réactive après réponse
+  renderRencontre();
 }
 
 async function removeSessionWin(pid){
