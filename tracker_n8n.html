@@ -331,10 +331,13 @@ function sessionWins(pid){ return td().matches.filter(m=>m.winner===pid&&new Dat
 function totalSessions(pid){ return td().sessions.filter(s=>s.playerIds.includes(pid)).length; }
 function coPresence(a,b){ return td().matches.filter(m=>{ if(!m.player_ids) return false; const ids = String(m.player_ids).split(",").map(Number); return ids.includes(Number(a))&&ids.includes(Number(b)); }).length; }
 function playerRatio(pid){
-  const sess  = td().sessions.filter(s=>s.playerIds.includes(pid));
-  const dates = new Set(sess.map(s=>s.date));
-  const played= td().matches.filter(m=>dates.has(new Date(m.date).toISOString().split('T')[0])).length;
-  const w     = wins(pid);
+  // Compte les parties où le joueur était présent via player_ids
+  const played = td().matches.filter(m=>{
+    if (!m.player_ids) return false;
+    const ids = String(m.player_ids).split(',').map(Number);
+    return ids.includes(Number(pid));
+  }).length;
+  const w = wins(pid);
   if (played===0) return null;
   return {wins:w, played, ratio:(w/played)};
 }
