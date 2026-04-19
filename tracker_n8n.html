@@ -555,7 +555,7 @@ function renderHistory(){
           <span style="flex:1"></span>
           ${p?`<div class="avatar ${p.color}" style="width:24px;height:24px;font-size:9px">${initials(p.name)}</div>`:''}
           <span class="badge-win">${p?p.name:'?'}</span>
-          <button class="btn-ghost" onclick="deleteMatch(${m.id})">✕</button>
+
         </div>`;
       }).join(''):'<div class="empty">Aucune partie enregistrée</div>'}
     </div>`;
