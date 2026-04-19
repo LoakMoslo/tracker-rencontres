@@ -20,8 +20,43 @@
   --font-sans:system-ui,-apple-system,sans-serif;
   --font-mono:ui-monospace,monospace;
 }
-body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);min-height:100vh}
+body.dark{
+  --color-text-primary:#f0f0f0;
+  --color-text-secondary:#9ca3af;
+  --color-background-primary:#1e1e1e;
+  --color-background-secondary:#2a2a2a;
+  --color-background-tertiary:#141414;
+  --color-border-tertiary:rgba(255,255,255,0.08);
+  --color-border-secondary:rgba(255,255,255,0.12);
+  --color-border-primary:rgba(255,255,255,0.25);
+}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);min-height:100vh;transition:background .2s,color .2s}
 .app{max-width:680px;margin:0 auto;padding:1rem}
+/* Dark mode toggle */
+.dark-toggle{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:50;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:20px;padding:8px 16px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);transition:all .15s;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.dark-toggle:hover{color:var(--color-text-primary);border-color:var(--color-border-primary)}
+/* Responsive — mobile first */
+@media(max-width:480px){
+  .app{padding:0.75rem}
+  .tabs{gap:0}
+  .tab{padding:10px 10px;font-size:12px;flex:1;text-align:center}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .session-controls{gap:6px}
+  .minus-btn,.plus-btn{width:42px;height:42px;font-size:20px}
+  .score-num{font-size:28px;min-width:36px}
+  .session-row{gap:8px;padding:14px 0}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .player-chip{padding:9px 13px;font-size:14px}
+  .chips-wrap{gap:6px}
+  .type-bar{gap:6px}
+  .card{padding:0.875rem 1rem}
+  .lb-row{gap:8px}
+  .hist-row{gap:6px}
+  .hist-date{min-width:48px}
+  .add-row{flex-direction:column}
+  .add-row input{width:100%}
+  .dark-toggle{bottom:16px}
+}
 .type-bar{display:flex;align-items:center;gap:8px;padding-bottom:12px;margin-bottom:4px;border-bottom:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
 .type-pill{padding:6px 14px;border:0.5px solid var(--color-border-secondary);border-radius:20px;font-size:13px;cursor:pointer;background:transparent;color:var(--color-text-secondary);transition:all .15s;white-space:nowrap}
 .type-pill.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
@@ -207,6 +242,7 @@ input[type=text]:focus{border-color:var(--color-border-primary)}
 </div>
 
 <div class="toast" id="toast"></div>
+<button class="dark-toggle" id="dark-toggle" onclick="toggleDark()">🌙 Mode nuit</button>
 
 <script>
 // ─── CONFIG ────────────────────────────────────────────────────────────────
@@ -302,7 +338,7 @@ function todayStr()   { return new Date().toDateString(); }
 function todayISO()   { return new Date().toISOString().split('T')[0]; }
 function sessionWins(pid){ return td().matches.filter(m=>m.winner===pid&&new Date(m.date).toDateString()===todayStr()).length; }
 function totalSessions(pid){ return td().sessions.filter(s=>s.playerIds.includes(pid)).length; }
-function coPresence(a,b){ return td().matches.filter(m=>{ const ids = m.player_ids ? m.player_ids.split(",").map(Number) : []; return ids.includes(a)&&ids.includes(b); }).length; }
+function coPresence(a,b){ return td().matches.filter(m=>{ if(!m.player_ids) return false; const ids = String(m.player_ids).split(",").map(Number); return ids.includes(Number(a))&&ids.includes(Number(b)); }).length; }
 function playerRatio(pid){
   const sess  = td().sessions.filter(s=>s.playerIds.includes(pid));
   const dates = new Set(sess.map(s=>s.date));
@@ -698,6 +734,23 @@ function showToast(msg, kind='ok'){
   t.textContent=msg; t.className='toast '+kind+' show';
   setTimeout(()=>t.classList.remove('show'),2500);
 }
+
+// ─── DARK MODE ────────────────────────────────────────────────────────────────
+function toggleDark(){
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('darkMode', isDark ? '1' : '0');
+  document.getElementById('dark-toggle').textContent = isDark ? '☀️ Mode jour' : '🌙 Mode nuit';
+}
+function initDark(){
+  const saved = localStorage.getItem('darkMode');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === '1' || (saved === null && prefersDark)) {
+    document.body.classList.add('dark');
+    const btn = document.getElementById('dark-toggle');
+    if (btn) btn.textContent = '☀️ Mode jour';
+  }
+}
+initDark();
 
 // ─── START ─────────────────────────────────────────────────────────────────
 async function init() {
