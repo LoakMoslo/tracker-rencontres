@@ -226,6 +226,7 @@ let editingTypeId  = null;
 let selectedEmoji  = EMOJIS[0];
 let accordionOpen  = {};
 let syncing        = false;
+let syncingWin     = null;
 
 // ─── PERSISTANCE LOCALE ────────────────────────────────────────────────────
 function save() {
@@ -475,7 +476,7 @@ function renderRencontre(){
           <div class="session-controls">
             <button class="minus-btn" onclick="removeSessionWin(${p.id})" ${w===0?'disabled':''}>−</button>
             <div class="score-num ${w>0&&w===maxW?'lead':w===0?'zero':''}" id="score-${p.id}">${w}</div>
-            <button class="plus-btn" onclick="addSessionWin(${p.id})">+</button>
+            <button class="plus-btn" onclick="addSessionWin(${p.id})" ${syncingWin===p.id?'disabled style="opacity:0.4"':''}>+</button>
           </div>
         </div>`;
       }).join('')}
@@ -487,9 +488,8 @@ function selectAll(){ td().players.forEach(p=>present.add(p.id)); renderRencontr
 function selectNone(){ present.clear(); renderRencontre(); }
 
 async function addSessionWin(pid){
-  // Bloque le bouton pendant la synchro
-  const btn = document.querySelector('.plus-btn[onclick*="'+pid+'"]');
-  if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }
+  if (syncingWin === pid) return;
+  syncingWin = pid;
   ensureTodaySession();
   const match={id:Date.now(), date:new Date().toISOString(), winner:pid};
   db.data[activeTypeId].matches.push(match);
@@ -498,7 +498,7 @@ async function addSessionWin(pid){
   showToast('+1 pour '+playerById(pid)?.name);
   const p=playerById(pid);
   await api({action:'add_win', type:typeName(), player_id:pid, player_name:p?.name, match_id:match.id, date:match.date});
-  // Réactive après réponse
+  syncingWin = null;
   renderRencontre();
 }
 
