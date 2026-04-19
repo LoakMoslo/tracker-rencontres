@@ -320,8 +320,7 @@ function ensureTodaySession(){
   if (ex) { pIds.forEach(id=>{ if(!ex.playerIds.includes(id)) ex.playerIds.push(id); }); }
   else if (pIds.length>0) {
     d.sessions.push({date:iso, playerIds:pIds});
-    // Persiste la session dans Sheets
-    api({action:'add_session', type:typeName(), date:iso, player_ids:pIds.join(',')});
+
   }
 }
 function typeName(){ return (db.types.find(t=>t.id===activeTypeId)||{}).name || ''; }
@@ -497,7 +496,8 @@ async function addSessionWin(pid){
   setTimeout(()=>{const el=document.getElementById('score-'+pid);if(el){el.classList.add('bumping');setTimeout(()=>el.classList.remove('bumping'),250);}},10);
   showToast('+1 pour '+playerById(pid)?.name);
   const p=playerById(pid);
-  await api({action:'add_win', type:typeName(), player_id:pid, player_name:p?.name, match_id:match.id, date:match.date});
+  const presentIds = Array.from(present);
+  await api({action:'add_win', type:typeName(), player_id:pid, player_name:p?.name, match_id:match.id, date:match.date, player_ids:presentIds.join(',')});
   syncingWin = null;
   renderRencontre();
 }
