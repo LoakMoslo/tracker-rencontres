@@ -672,6 +672,10 @@ async function addPlayer(){
   const inp=document.getElementById('new-player-name');
   const name=inp?inp.value.trim():''; if(!name) return;
   const d=db.data[activeTypeId];
+  if(d.players.some(p=>p.name.toLowerCase()===name.toLowerCase())){
+    showToast('Ce joueur existe déjà', 'err');
+    return;
+  }
   const pid=Date.now();
   const color=COLORS[d.players.length%COLORS.length];
   d.players.push({id:pid, name, color});
