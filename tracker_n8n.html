@@ -687,6 +687,24 @@ function showToast(msg, kind='ok'){
 }
 
 // ─── START ─────────────────────────────────────────────────────────────────
+async function init() {
+  // 1. Données injectées par N8N au chargement (source de vérité)
+  if (window.__INITIAL_DATA__ && window.__INITIAL_DATA__.types && window.__INITIAL_DATA__.types.length > 0) {
+    db = window.__INITIAL_DATA__;
+    save();
+    renderTypeBar();
+    selectType(db.types[0].id);
+    return;
+  }
+  // 2. Fallback : localStorage si pas de données injectées
+  const hasLocal = loadLocal();
+  if (hasLocal && db.types.length > 0) {
+    renderTypeBar();
+    selectType(db.types[0].id);
+  } else {
+    goManage();
+  }
+}
 init();
 </script>
 </html>
