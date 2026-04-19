@@ -243,9 +243,11 @@ function loadLocal() {
 async function api(body) {
   setSyncing(true);
   try {
+    // On envoie en text/plain pour éviter le preflight CORS OPTIONS
+    // N8N lira les données via $json.body après parsing dans un nœud Code
     const res = await fetch(WEBHOOK_URL, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'text/plain'},
       body: JSON.stringify(body)
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
