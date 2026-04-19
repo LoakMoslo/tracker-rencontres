@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker Rencontres</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --color-text-primary:#1a1a1a;
+  --color-text-secondary:#6b7280;
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#f3f4f6;
+  --color-background-tertiary:#f9fafb;
+  --color-border-tertiary:rgba(0,0,0,0.1);
+  --color-border-secondary:rgba(0,0,0,0.15);
+  --color-border-primary:rgba(0,0,0,0.3);
+  --border-radius-md:8px;
+  --border-radius-lg:12px;
+  --font-sans:system-ui,-apple-system,sans-serif;
+  --font-mono:ui-monospace,monospace;
+}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);min-height:100vh}
+.app{max-width:680px;margin:0 auto;padding:1rem}
+.type-bar{display:flex;align-items:center;gap:8px;padding-bottom:12px;margin-bottom:4px;border-bottom:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
+.type-pill{padding:6px 14px;border:0.5px solid var(--color-border-secondary);border-radius:20px;font-size:13px;cursor:pointer;background:transparent;color:var(--color-text-secondary);transition:all .15s;white-space:nowrap}
+.type-pill.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.type-pill:hover:not(.active){color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.type-pill.manage{border-style:dashed}
+.tabs{display:flex;gap:4px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.5rem;margin-top:12px}
+.tab{padding:8px 14px;font-size:13px;cursor:pointer;border:none;background:transparent;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.tab:hover:not(.active){color:var(--color-text-primary)}
+.section{display:none}.section.active{display:block}
+.manage-panel{display:none}.manage-panel.active{display:block}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:14px 16px}
+.metric-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.metric-val{font-size:22px;font-weight:500}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:10px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title{font-size:14px;font-weight:500}
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:500;flex-shrink:0}
+.av-blue{background:#E6F1FB;color:#185FA5}
+.av-teal{background:#E1F5EE;color:#0F6E56}
+.av-amber{background:#FAEEDA;color:#854F0B}
+.av-coral{background:#FAECE7;color:#993C1D}
+.av-purple{background:#EEEDFE;color:#534AB7}
+.av-pink{background:#FBEAF0;color:#993356}
+.av-green{background:#EAF3DE;color:#3B6D11}
+.av-red{background:#FCEBEB;color:#A32D2D}
+.chips-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem}
+.player-chip{padding:7px 13px;border:0.5px solid var(--color-border-secondary);border-radius:20px;font-size:13px;cursor:pointer;transition:all .15s;background:transparent;color:var(--color-text-primary);display:flex;align-items:center;gap:6px}
+.player-chip.selected{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.btn-outline{background:transparent;border:0.5px solid var(--color-border-secondary);color:var(--color-text-primary);border-radius:var(--border-radius-md);padding:7px 14px;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-outline:hover{background:var(--color-background-secondary)}
+.session-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.session-row:last-child{border-bottom:none}
+.session-rank{font-size:12px;color:var(--color-text-secondary);min-width:26px;text-align:center}
+.session-rank.gold{font-weight:500;color:#854F0B}
+.session-info{flex:1;min-width:0}
+.session-name{font-size:14px;font-weight:500}
+.session-sub{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.session-controls{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.score-num{font-size:24px;font-weight:500;min-width:32px;text-align:center}
+.score-num.lead{color:#1D9E75}
+.score-num.zero{color:var(--color-border-secondary)}
+.minus-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:0.5px solid var(--color-border-secondary);border-radius:50%;background:transparent;color:var(--color-text-secondary);font-size:18px;cursor:pointer;transition:all .15s;line-height:1;flex-shrink:0}
+.minus-btn:hover{border-color:#D85A30;color:#D85A30;background:#FAECE7}
+.minus-btn:active{transform:scale(0.93)}
+.minus-btn:disabled{opacity:.2;cursor:default;pointer-events:none}
+.plus-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:0.5px solid #1D9E75;border-radius:50%;background:transparent;color:#1D9E75;font-size:20px;cursor:pointer;transition:all .15s;line-height:1;flex-shrink:0}
+.plus-btn:hover{background:#1D9E75;color:#fff}
+.plus-btn:active{transform:scale(0.93)}
+.lb-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.lb-row:last-child{border-bottom:none}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-size:14px;font-weight:500}
+.lb-sub{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.lb-wins{font-size:18px;font-weight:500;color:#1D9E75;min-width:28px;text-align:right}
+.ratio-badge{font-size:11px;padding:3px 7px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-secondary);font-weight:500;margin-left:4px;white-space:nowrap}
+.ratio-badge.good{background:#EAF3DE;color:#3B6D11}
+.hist-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.hist-row:last-child{border-bottom:none}
+.hist-date{color:var(--color-text-secondary);font-size:12px;min-width:56px}
+.badge-win{font-size:11px;padding:3px 8px;border-radius:var(--border-radius-md);font-weight:500;background:#EAF3DE;color:#3B6D11}
+.btn-ghost{background:transparent;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);border-radius:var(--border-radius-md);padding:4px 8px;font-size:11px;cursor:pointer;transition:all .15s}
+.btn-ghost:hover{color:#D85A30;border-color:#D85A30}
+.player-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:10px;transition:border-color .2s}
+.player-card.confirming{border-color:#D85A30}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.stat-box{text-align:center;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 4px}
+.stat-num{font-size:18px;font-weight:500}
+.stat-lbl{font-size:10px;color:var(--color-text-secondary);margin-top:2px}
+.bar-track{height:5px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.bar-fill{height:100%;background:#1D9E75;border-radius:3px;transition:width .4s}
+.accordion-btn{display:flex;align-items:center;justify-content:space-between;width:100%;background:transparent;border:none;cursor:pointer;padding:7px 0;font-size:12px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em}
+.accordion-btn:hover{color:var(--color-text-primary)}
+.accordion-arrow{font-size:10px;transition:transform .2s}
+.accordion-arrow.open{transform:rotate(180deg)}
+.accordion-body{display:none}.accordion-body.open{display:block}
+.copres-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.copres-row:last-child{border-bottom:none}
+.copres-name{flex:1;font-size:13px}
+.copres-count{font-size:12px;font-weight:500;color:var(--color-text-secondary)}
+.name-input{flex:1;font-size:15px;font-weight:500;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:5px 8px;background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
+.name-input:focus{border-color:var(--color-border-primary)}
+.btn-icon{background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:5px 8px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);transition:all .15s}
+.btn-icon:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.btn-icon.save{border-color:#1D9E75;color:#1D9E75}
+.btn-icon.save:hover{background:#1D9E75;color:#fff}
+.confirm-zone{display:none;margin-top:12px;padding:12px;background:#FCEBEB;border-radius:var(--border-radius-md);border:0.5px solid #F7C1C1}
+.confirm-zone.show{display:block}
+.confirm-msg{font-size:13px;color:#791F1F;margin-bottom:10px;line-height:1.5}
+.confirm-name-hint{font-family:var(--font-mono);background:#F7C1C1;color:#791F1F;padding:1px 5px;border-radius:4px;font-size:12px}
+.confirm-row{display:flex;gap:8px;align-items:center}
+.confirm-input{flex:1;border:0.5px solid #F09595;background:var(--color-background-primary);border-radius:var(--border-radius-md);padding:8px 10px;font-size:13px;color:var(--color-text-primary);outline:none;transition:border-color .15s}
+.confirm-input:focus{border-color:#D85A30}
+.confirm-input.valid{border-color:#1D9E75}
+.btn-cancel{background:transparent;border:0.5px solid #F09595;color:#A32D2D;border-radius:var(--border-radius-md);padding:6px 10px;font-size:12px;cursor:pointer}
+.btn-cancel:hover{background:#F7C1C1}
+.btn-confirm-del{background:#A32D2D;border:none;color:#fff;border-radius:var(--border-radius-md);padding:6px 10px;font-size:12px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.btn-confirm-del:disabled{opacity:.3;cursor:default}
+.btn-confirm-del:not(:disabled):hover{opacity:.85}
+.btn-delete{background:transparent;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);border-radius:var(--border-radius-md);padding:5px 10px;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-delete:hover{border-color:#D85A30;color:#D85A30}
+.type-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.type-icon{width:40px;height:40px;border-radius:var(--border-radius-md);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:var(--color-background-secondary)}
+.type-info{flex:1;min-width:0}
+.type-name-txt{font-size:15px;font-weight:500}
+.type-meta{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.type-name-inp{font-size:15px;font-weight:500;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:5px 8px;background:var(--color-background-primary);color:var(--color-text-primary);outline:none;width:100%}
+.emoji-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.emoji-opt{font-size:20px;cursor:pointer;padding:4px 6px;border-radius:6px;border:0.5px solid transparent;transition:all .15s}
+.emoji-opt:hover{background:var(--color-background-secondary)}
+.emoji-opt.sel{border-color:var(--color-border-primary);background:var(--color-background-secondary)}
+.add-type-card{border:0.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--color-text-secondary);transition:all .15s}
+.add-type-card:hover{border-color:var(--color-border-primary);color:var(--color-text-primary)}
+.add-row{display:flex;gap:8px}
+input[type=text]{flex:1;padding:8px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
+input[type=text]:focus{border-color:var(--color-border-primary)}
+.btn{background:var(--color-text-primary);color:var(--color-background-primary);border:none;border-radius:var(--border-radius-md);padding:9px 16px;font-size:13px;cursor:pointer;font-weight:500;white-space:nowrap;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-sm{padding:6px 12px;font-size:12px}
+.empty{text-align:center;color:var(--color-text-secondary);font-size:14px;padding:2rem 0}
+.rank{font-size:12px;color:var(--color-text-secondary);min-width:26px;text-align:center}
+.rank-gold{font-weight:500;color:#854F0B}
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:var(--border-radius-md);font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;max-width:280px}
+.toast.show{opacity:1}
+.toast.ok{background:#1D9E75;color:#fff}
+.toast.err{background:#A32D2D;color:#fff}
+/* Spinner sync */
+.sync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#1D9E75;margin-left:6px;opacity:0;transition:opacity .2s;vertical-align:middle}
+.sync-dot.active{opacity:1;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* Skeleton loader */
+.skeleton{background:linear-gradient(90deg,var(--color-background-secondary) 25%,var(--color-background-tertiary) 50%,var(--color-background-secondary) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:var(--border-radius-md);height:20px;margin-bottom:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+.bumping{animation:bump .22s ease}
+</style>
+
+<div class="app">
+<h2 class="sr-only">Tracker multi-sports</h2>
+<div class="type-bar" id="type-bar"></div>
+
+<!-- MANAGE PANEL -->
+<div class="manage-panel" id="manage-panel">
+  <div style="margin-bottom:1rem">
+    <div style="font-size:16px;font-weight:500;margin-bottom:4px">Types de rencontre</div>
+    <div style="font-size:13px;color:var(--color-text-secondary)">Sélectionne un type ou crée-en un nouveau.</div>
+  </div>
+  <div id="type-list"></div>
+  <div class="add-type-card" onclick="startNewType()">
+    <span style="font-size:20px">+</span>
+    <span style="font-size:13px">Nouveau type de rencontre</span>
+  </div>
+  <div id="new-type-form" style="display:none">
+    <div class="card">
+      <div style="font-size:14px;font-weight:500;margin-bottom:12px">Nouveau type</div>
+      <div class="emoji-row" id="emoji-picker"></div>
+      <div style="margin-top:10px">
+        <input type="text" id="new-type-name" placeholder="Nom du type (ex: Fléchettes, Ping-pong...)" style="width:100%;margin-bottom:8px">
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="saveNewType()">Créer</button>
+          <button class="btn-outline" onclick="cancelNewType()">Annuler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPORT PANEL -->
+<div id="sport-panel" style="display:none">
+  <div class="tabs" id="sub-tabs">
+    <button class="tab active" onclick="goSubTab('rencontre')">Rencontre</button>
+    <button class="tab" onclick="goSubTab('dashboard')">Classement</button>
+    <button class="tab" onclick="goSubTab('history')">Historique</button>
+    <button class="tab" onclick="goSubTab('players')">Joueurs</button>
+  </div>
+  <div id="tab-rencontre" class="section active"></div>
+  <div id="tab-dashboard" class="section"></div>
+  <div id="tab-history" class="section"></div>
+  <div id="tab-players" class="section"></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const WEBHOOK_URL = 'https://mon-n8n.domaine.com/webhook/tracker';
+// ───────────────────────────────────────────────────────────────────────────
+
+const EMOJIS = ['🎯','🏓','🎱','🃏','♟️','🎳','🏸','⚽','🎮','🏆','🎲','🥊'];
+const COLORS  = ['av-blue','av-teal','av-amber','av-coral','av-purple','av-pink','av-green','av-red'];
+
+let db = {types:[], data:{}};
+let activeTypeId   = null;
+let activeSubTab   = 'rencontre';
+let present        = new Set();
+let confirmingId   = null;
+let editingId      = null;
+let editingTypeId  = null;
+let selectedEmoji  = EMOJIS[0];
+let accordionOpen  = {};
+let syncing        = false;
+
+// ─── PERSISTANCE LOCALE ────────────────────────────────────────────────────
+function save() {
+  try { localStorage.setItem('tracker_n8n', JSON.stringify(db)); } catch(e) {}
+}
+function loadLocal() {
+  try {
+    const d = localStorage.getItem('tracker_n8n');
+    if (d) { db = JSON.parse(d); return true; }
+  } catch(e) {}
+  return false;
+}
+
+// ─── API N8N ───────────────────────────────────────────────────────────────
+async function api(body) {
+  setSyncing(true);
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    setSyncing(false);
+    return json;
+  } catch(e) {
+    setSyncing(false);
+    showToast('⚠ Hors ligne — sauvegarde locale uniquement', 'err');
+    return null;
+  }
+}
+
+async function apiGet() {
+  try {
+    const res = await fetch(WEBHOOK_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch(e) {
+    showToast('⚠ Impossible de charger les données depuis N8N', 'err');
+    return null;
+  }
+}
+
+function setSyncing(v) {
+  syncing = v;
+  document.querySelectorAll('.sync-dot').forEach(d => d.classList.toggle('active', v));
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+async function init() {
+  // Affiche d'abord le cache local pour une UI instantanée
+  const hasLocal = loadLocal();
+  if (hasLocal && db.types.length > 0) {
+    renderTypeBar();
+    selectType(db.types[0].id);
+  }
+
+  // Puis synchronise avec N8N en arrière-plan
+  const remote = await apiGet();
+  if (remote && remote.db) {
+    db = remote.db;
+    save();
+    renderTypeBar();
+    if (activeTypeId && db.data[activeTypeId]) {
+      renderSport();
+    } else if (db.types.length > 0) {
+      selectType(db.types[0].id);
+    } else {
+      goManage();
+    }
+  } else if (!hasLocal) {
+    // Aucune donnée locale ni distante — initialise vide
+    goManage();
+  }
+}
+
+// ─── HELPERS ───────────────────────────────────────────────────────────────
+function td()         { return db.data[activeTypeId] || {players:[],matches:[],sessions:[]}; }
+function initials(n)  { return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function playerById(id){ return td().players.find(p=>p.id===id); }
+function wins(pid)    { return td().matches.filter(m=>m.winner===pid).length; }
+function sortedPlayers(){ return td().players.slice().sort((a,b)=>wins(b.id)-wins(a.id)); }
+function presentList(){ return td().players.filter(p=>present.has(p.id)); }
+function todayStr()   { return new Date().toDateString(); }
+function todayISO()   { return new Date().toISOString().split('T')[0]; }
+function sessionWins(pid){ return td().matches.filter(m=>m.winner===pid&&new Date(m.date).toDateString()===todayStr()).length; }
+function totalSessions(pid){ return td().sessions.filter(s=>s.playerIds.includes(pid)).length; }
+function coPresence(a,b){ return td().sessions.filter(s=>s.playerIds.includes(a)&&s.playerIds.includes(b)).length; }
+function playerRatio(pid){
+  const sess  = td().sessions.filter(s=>s.playerIds.includes(pid));
+  const dates = new Set(sess.map(s=>s.date));
+  const played= td().matches.filter(m=>dates.has(new Date(m.date).toISOString().split('T')[0])).length;
+  const w     = wins(pid);
+  if (played===0) return null;
+  return {wins:w, played, ratio:(w/played)};
+}
+function ensureTodaySession(){
+  const iso  = todayISO();
+  const pIds = Array.from(present);
+  if (!db.data[activeTypeId]) db.data[activeTypeId]={players:[],matches:[],sessions:[]};
+  const d  = db.data[activeTypeId];
+  const ex = d.sessions.find(s=>s.date===iso);
+  if (ex) { pIds.forEach(id=>{ if(!ex.playerIds.includes(id)) ex.playerIds.push(id); }); }
+  else if (pIds.length>0) d.sessions.push({date:iso, playerIds:pIds});
+}
+function typeName(){ return (db.types.find(t=>t.id===activeTypeId)||{}).name || ''; }
+
+// ─── TYPE BAR ──────────────────────────────────────────────────────────────
+function renderTypeBar(){
+  const bar     = document.getElementById('type-bar');
+  const isManage= showingManage();
+  if (isManage) {
+    bar.innerHTML = `<button class="type-pill manage active" onclick="goManage()">⚙ Gérer</button><span class="sync-dot"></span>`;
+    return;
+  }
+  const active = db.types.find(t=>t.id===activeTypeId);
+  bar.innerHTML = (active ? `<button class="type-pill active">${active.emoji} ${active.name}</button>` : '')
+    + `<button class="type-pill manage" onclick="goManage()">⚙ Gérer</button><span class="sync-dot"></span>`;
+}
+function showingManage(){ return document.getElementById('manage-panel').classList.contains('active'); }
+
+function selectType(id){
+  activeTypeId = id; present = new Set(); confirmingId = null; editingId = null;
+  if (!db.data[id]) db.data[id]={players:[],matches:[],sessions:[]};
+  document.getElementById('manage-panel').classList.remove('active');
+  document.getElementById('sport-panel').style.display = 'block';
+  goSubTab(activeSubTab);
+  renderTypeBar();
+}
+function goManage(){
+  document.getElementById('manage-panel').classList.add('active');
+  document.getElementById('sport-panel').style.display = 'none';
+  renderTypeBar();
+  renderManage();
+}
+
+// ─── MANAGE ────────────────────────────────────────────────────────────────
+function renderManage(){
+  const opts = EMOJIS.map(e=>`<span class="emoji-opt ${selectedEmoji===e?'sel':''}" onclick="pickEmoji('${e}')">${e}</span>`).join('');
+  document.getElementById('emoji-picker').innerHTML = opts;
+  document.getElementById('type-list').innerHTML = db.types.map(t=>{
+    const d      = db.data[t.id]||{};
+    const pCount = (d.players||[]).length;
+    const mCount = (d.matches||[]).length;
+    const isE    = editingTypeId===t.id;
+    const isAct  = activeTypeId===t.id;
+    return `<div class="type-card" style="${isAct?'border-color:var(--color-border-primary);':''}">
+      <div class="type-icon">${t.emoji}</div>
+      <div class="type-info" style="cursor:pointer" onclick="${isE?'':` selectType(${t.id})`}">
+        ${isE
+          ? `<input class="type-name-inp" id="tname-${t.id}" value="${t.name}" onkeydown="if(event.key==='Enter')saveTypeName(${t.id})">
+             <div class="emoji-row">${EMOJIS.map(e=>`<span class="emoji-opt ${t.emoji===e?'sel':''}" onclick="event.stopPropagation();pickTypeEmoji(${t.id},'${e}')">${e}</span>`).join('')}</div>`
+          : `<div class="type-name-txt">${t.emoji} ${t.name}${isAct?' <span style="font-size:11px;color:var(--color-text-secondary);font-weight:400">— actif</span>':''}</div>
+             <div class="type-meta">${pCount} joueur${pCount!==1?'s':''} · ${mCount} partie${mCount!==1?'s':''}</div>`}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${isE
+          ? `<button class="btn btn-sm" onclick="saveTypeName(${t.id})">✓</button>
+             <button class="btn-outline btn-sm" onclick="cancelTypeEdit()">✕</button>`
+          : `<button class="btn-icon" onclick="event.stopPropagation();startTypeEdit(${t.id})">✎</button>
+             ${db.types.length>1?`<button class="btn-icon" style="color:#D85A30;border-color:#F09595" onclick="event.stopPropagation();deleteType(${t.id})">✕</button>`:''}`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function startTypeEdit(id){ editingTypeId=id; renderManage(); setTimeout(()=>{const i=document.getElementById('tname-'+id);if(i){i.focus();i.select();}},30); }
+function cancelTypeEdit(){ editingTypeId=null; renderManage(); }
+async function saveTypeName(id){
+  const i=document.getElementById('tname-'+id); if(!i) return;
+  const name=i.value.trim(); if(!name) return;
+  const t=db.types.find(t=>t.id===id); if(!t) return;
+  const old=t.name; t.name=name; editingTypeId=null; save(); renderManage(); renderTypeBar();
+  showToast('Type renommé');
+  await api({action:'rename_type', type_id:id, old_name:old, new_name:name});
+}
+function pickTypeEmoji(id,e){
+  const t=db.types.find(t=>t.id===id); if(t) t.emoji=e;
+  save(); renderManage(); renderTypeBar();
+}
+function deleteType(id){
+  // ⚠ Ne supprime PAS l'onglet Google Sheets — données conservées côté Sheets
+  if(!confirm('Supprimer ce type de l\'interface ?\n\nNote : les données resteront dans Google Sheets.')) return;
+  db.types=db.types.filter(t=>t.id!==id);
+  // On garde db.data[id] pour ne pas perdre la ref locale non plus
+  if(activeTypeId===id) activeTypeId=db.types[0]?.id||null;
+  save(); renderManage(); renderTypeBar(); showToast('Type retiré de l\'interface');
+  // Pas d'appel API de suppression Sheets — intentionnel
+}
+function pickEmoji(e){ selectedEmoji=e; renderManage(); }
+function startNewType(){ document.getElementById('new-type-form').style.display='block'; document.getElementById('new-type-name').focus(); }
+function cancelNewType(){ document.getElementById('new-type-form').style.display='none'; }
+async function saveNewType(){
+  const name=document.getElementById('new-type-name').value.trim(); if(!name) return;
+  const id=Date.now();
+  db.types.push({id, name, emoji:selectedEmoji});
+  db.data[id]={players:[],matches:[],sessions:[]};
+  cancelNewType(); save(); renderManage(); renderTypeBar();
+  showToast(selectedEmoji+' '+name+' créé');
+  selectType(id);
+  await api({action:'create_type', type:name, emoji:selectedEmoji, type_id:id});
+}
+
+// ─── SUB TABS ──────────────────────────────────────────────────────────────
+function goSubTab(t){
+  activeSubTab=t; confirmingId=null; editingId=null;
+  const names=['rencontre','dashboard','history','players'];
+  document.querySelectorAll('#sub-tabs .tab').forEach((el,i)=>el.classList.toggle('active',names[i]===t));
+  document.querySelectorAll('.section').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  renderSport();
+}
+function renderSport(){ renderRencontre(); renderDashboard(); renderHistory(); renderPlayers(); }
+
+// ─── RENCONTRE ─────────────────────────────────────────────────────────────
+function renderRencontre(){
+  const pAll   = td().players;
+  const pList  = presentList();
+  const chips  = pAll.map(p=>`
+    <button class="player-chip ${present.has(p.id)?'selected':''}" onclick="togglePresence(${p.id})">
+      <div class="avatar ${p.color}" style="width:20px;height:20px;font-size:8px">${initials(p.name)}</div>
+      ${p.name}
+    </button>`).join('');
+  const totalSess = pList.reduce((s,p)=>s+sessionWins(p.id),0);
+  const sorted    = pList.slice().sort((a,b)=>sessionWins(b.id)-sessionWins(a.id));
+  const maxW      = Math.max(1,...sorted.map(p=>sessionWins(p.id)));
+  const rankLabels= ['1er','2e','3e'];
+
+  document.getElementById('tab-rencontre').innerHTML=`
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Joueurs présents</span>
+        <span style="font-size:12px;color:var(--color-text-secondary)">${pList.length?pList.length+' joueur'+(pList.length>1?'s':''):''}</span>
+      </div>
+      <div class="chips-wrap">${chips||'<span style="font-size:13px;color:var(--color-text-secondary)">Aucun joueur — ajoutez-en dans l\'onglet Joueurs</span>'}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline" onclick="selectAll()">Tous</button>
+        <button class="btn-outline" onclick="selectNone()">Aucun</button>
+      </div>
+    </div>
+    ${pList.length>=1?`<div class="card">
+      <div class="card-header">
+        <span class="card-title">Score de la rencontre</span>
+        <span style="font-size:12px;color:var(--color-text-secondary)">${totalSess} partie${totalSess!==1?'s':''} aujourd'hui</span>
+      </div>
+      ${sorted.map((p,i)=>{
+        const w=sessionWins(p.id);
+        return`<div class="session-row">
+          <div class="session-rank ${i===0&&w>0?'gold':''}">${i<3?rankLabels[i]:'#'+(i+1)}</div>
+          <div class="avatar ${p.color}" style="width:34px;height:34px;font-size:12px">${initials(p.name)}</div>
+          <div class="session-info">
+            <div class="session-name">${p.name}</div>
+            <div class="session-sub">${wins(p.id)} au total</div>
+          </div>
+          <div class="session-controls">
+            <button class="minus-btn" onclick="removeSessionWin(${p.id})" ${w===0?'disabled':''}>−</button>
+            <div class="score-num ${w>0&&w===maxW?'lead':w===0?'zero':''}" id="score-${p.id}">${w}</div>
+            <button class="plus-btn" onclick="addSessionWin(${p.id})">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`:''}`;
+}
+
+function togglePresence(id){ present.has(id)?present.delete(id):present.add(id); renderRencontre(); }
+function selectAll(){ td().players.forEach(p=>present.add(p.id)); renderRencontre(); }
+function selectNone(){ present.clear(); renderRencontre(); }
+
+async function addSessionWin(pid){
+  ensureTodaySession();
+  const match={id:Date.now(), date:new Date().toISOString(), winner:pid};
+  db.data[activeTypeId].matches.push(match);
+  save(); renderRencontre(); renderDashboard(); renderHistory();
+  setTimeout(()=>{const el=document.getElementById('score-'+pid);if(el){el.classList.add('bumping');setTimeout(()=>el.classList.remove('bumping'),250);}},10);
+  showToast('+1 pour '+playerById(pid)?.name);
+  const p=playerById(pid);
+  await api({action:'add_win', type:typeName(), player_id:pid, player_name:p?.name, match_id:match.id, date:match.date});
+}
+
+async function removeSessionWin(pid){
+  const last=td().matches.filter(m=>m.winner===pid&&new Date(m.date).toDateString()===todayStr()).slice(-1)[0];
+  if(!last) return;
+  db.data[activeTypeId].matches=db.data[activeTypeId].matches.filter(m=>m.id!==last.id);
+  save(); renderRencontre(); renderDashboard(); renderHistory();
+  showToast('−1 pour '+playerById(pid)?.name);
+  await api({action:'remove_win', type:typeName(), match_id:last.id, player_id:pid});
+}
+
+// ─── DASHBOARD ─────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const total     = td().matches.length;
+  const top       = sortedPlayers()[0];
+  const todayCount= td().matches.filter(m=>new Date(m.date).toDateString()===todayStr()).length;
+  const rankLabels= ['1er','2e','3e'];
+  const sorted    = sortedPlayers();
+  document.getElementById('tab-dashboard').innerHTML=`
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Parties totales</div><div class="metric-val">${total}</div></div>
+      <div class="metric"><div class="metric-label">Aujourd'hui</div><div class="metric-val">${todayCount}</div></div>
+      <div class="metric"><div class="metric-label">Leader</div><div class="metric-val" style="font-size:15px;margin-top:2px">${top?top.name:'—'}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Classement général</span>
+        <span style="font-size:12px;color:var(--color-text-secondary)">victoires / parties jouées</span>
+      </div>
+      ${sorted.length?sorted.map((p,i)=>{
+        const r=playerRatio(p.id); const w=wins(p.id);
+        const ratioStr=r?Math.round(r.ratio*100)+'%':'-';
+        const ratioGood=r&&r.ratio>=0.5;
+        return`<div class="lb-row">
+          <div class="rank ${i===0?'rank-gold':''}">${i<3?rankLabels[i]:'#'+(i+1)}</div>
+          <div class="avatar ${p.color}" style="width:34px;height:34px;font-size:12px">${initials(p.name)}</div>
+          <div class="lb-info">
+            <div class="lb-name">${p.name}</div>
+            <div class="lb-sub">${w} victoire${w!==1?'s':''} · ${r?r.played+' partie'+(r.played!==1?'s jouées':' jouée'):'0 partie'}</div>
+          </div>
+          <span class="ratio-badge ${ratioGood?'good':''}">${ratioStr}</span>
+          <div class="lb-wins">${w}</div>
+        </div>`;
+      }).join(''):'<div class="empty">Aucun joueur</div>'}
+    </div>`;
+}
+
+// ─── HISTORY ───────────────────────────────────────────────────────────────
+function renderHistory(){
+  const all=td().matches.slice().reverse();
+  document.getElementById('tab-history').innerHTML=`
+    <div class="card">
+      <div class="card-header"><span class="card-title">Historique des parties</span></div>
+      ${all.length?all.map(m=>{
+        const p=playerById(m.winner);
+        const d=new Date(m.date);
+        const df=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+        const tf=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        return`<div class="hist-row">
+          <span class="hist-date">${df}</span>
+          <span style="font-size:12px;color:var(--color-text-secondary)">${tf}</span>
+          <span style="flex:1"></span>
+          ${p?`<div class="avatar ${p.color}" style="width:24px;height:24px;font-size:9px">${initials(p.name)}</div>`:''}
+          <span class="badge-win">${p?p.name:'?'}</span>
+          <button class="btn-ghost" onclick="deleteMatch(${m.id})">✕</button>
+        </div>`;
+      }).join(''):'<div class="empty">Aucune partie enregistrée</div>'}
+    </div>`;
+}
+async function deleteMatch(id){
+  const m=td().matches.find(m=>m.id===id);
+  db.data[activeTypeId].matches=db.data[activeTypeId].matches.filter(m=>m.id!==id);
+  save(); renderDashboard(); renderHistory(); renderRencontre(); showToast('Partie supprimée');
+  await api({action:'remove_win', type:typeName(), match_id:id, player_id:m?.winner});
+}
+
+// ─── PLAYERS ───────────────────────────────────────────────────────────────
+function renderPlayers(){
+  const sorted=sortedPlayers();
+  const cards=sorted.map(p=>{
+    const w=wins(p.id); const sess=totalSessions(p.id);
+    const r=playerRatio(p.id); const ratioStr=r?Math.round(r.ratio*100)+'%':'—';
+    const isC=confirmingId===p.id; const isE=editingId===p.id;
+    const accOpen=accordionOpen[p.id];
+    const coRows=td().players.filter(o=>o.id!==p.id)
+      .map(o=>({player:o,count:coPresence(p.id,o.id)}))
+      .sort((a,b)=>b.count-a.count).filter(r=>r.count>0);
+    return`<div class="player-card ${isC?'confirming':''}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="avatar ${p.color}" style="width:44px;height:44px;font-size:15px">${initials(p.name)}</div>
+        <div style="flex:1;min-width:0">
+          ${isE
+            ?`<div style="display:flex;align-items:center;gap:6px">
+                <input class="name-input" id="name-inp-${p.id}" value="${p.name}" onkeydown="if(event.key==='Enter')saveName(${p.id});if(event.key==='Escape')cancelEdit()">
+                <button class="btn-icon save" onclick="saveName(${p.id})">✓</button>
+                <button class="btn-icon" onclick="cancelEdit()">✕</button>
+              </div>`
+            :`<div style="display:flex;align-items:center;gap:7px">
+                <div style="font-size:15px;font-weight:500">${p.name}</div>
+                <button class="btn-icon" onclick="startEdit(${p.id})" style="padding:3px 6px;font-size:11px">✎</button>
+              </div>`}
+          <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">${sess} rencontre${sess!==1?'s':''}</div>
+        </div>
+        ${isC?`<button class="btn-cancel" onclick="cancelDelete()">Annuler</button>`
+             :`<button class="btn-delete" onclick="askDelete(${p.id})">Supprimer</button>`}
+      </div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num" style="color:#1D9E75">${w}</div><div class="stat-lbl">Victoires</div></div>
+        <div class="stat-box"><div class="stat-num">${r?r.played:'0'}</div><div class="stat-lbl">Parties</div></div>
+        <div class="stat-box"><div class="stat-num">${ratioStr}</div><div class="stat-lbl">Ratio V/P</div></div>
+        <div class="stat-box"><div class="stat-num">${sess}</div><div class="stat-lbl">Rencontres</div></div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${r?Math.round(r.ratio*100):0}%"></div></div>
+      ${coRows.length?`
+        <button class="accordion-btn" onclick="toggleAccordion(${p.id})">
+          <span>Joueurs rencontrés (${coRows.length})</span>
+          <span class="accordion-arrow ${accOpen?'open':''}">▼</span>
+        </button>
+        <div class="accordion-body ${accOpen?'open':''}">
+          ${coRows.map(r=>`<div class="copres-row">
+            <div class="avatar ${r.player.color}" style="width:24px;height:24px;font-size:9px">${initials(r.player.name)}</div>
+            <div class="copres-name">${r.player.name}</div>
+            <div class="copres-count">${r.count} rencontre${r.count!==1?'s':''}</div>
+          </div>`).join('')}
+        </div>`:''}
+      <div class="confirm-zone ${isC?'show':''}">
+        <div class="confirm-msg">Pour confirmer, tape le nom : <span class="confirm-name-hint">${p.name}</span></div>
+        <div class="confirm-row">
+          <input class="confirm-input" id="del-input-${p.id}" type="text" placeholder="Nom du joueur..."
+            oninput="onDelInput(${p.id})"
+            onkeydown="if(event.key==='Enter'&&!document.getElementById('del-btn-${p.id}').disabled)confirmDelete(${p.id})">
+          <button class="btn-confirm-del" id="del-btn-${p.id}" disabled onclick="confirmDelete(${p.id})">Supprimer</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('tab-players').innerHTML=`
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-header"><span class="card-title">Ajouter un joueur</span></div>
+      <div class="add-row">
+        <input type="text" id="new-player-name" placeholder="Prénom ou pseudo..." onkeydown="if(event.key==='Enter')addPlayer()">
+        <button class="btn" onclick="addPlayer()">Ajouter</button>
+      </div>
+    </div>
+    ${cards||'<div class="empty">Aucun joueur — ajoutez-en ci-dessus</div>'}`;
+
+  if(editingId){setTimeout(()=>{const i=document.getElementById('name-inp-'+editingId);if(i){i.focus();i.select();}},30);}
+}
+
+function toggleAccordion(pid){ accordionOpen[pid]=!accordionOpen[pid]; renderPlayers(); }
+function startEdit(pid){ editingId=pid; confirmingId=null; renderPlayers(); }
+function cancelEdit(){ editingId=null; renderPlayers(); }
+async function saveName(pid){
+  const inp=document.getElementById('name-inp-'+pid);
+  const name=inp?inp.value.trim():''; if(!name) return;
+  const p=playerById(pid); if(!p) return;
+  const old=p.name; p.name=name; editingId=null; save(); renderSport(); showToast('Nom mis à jour');
+  await api({action:'rename_player', type:typeName(), player_id:pid, old_name:old, new_name:name});
+}
+function askDelete(pid){ confirmingId=pid; editingId=null; renderPlayers(); setTimeout(()=>{const i=document.getElementById('del-input-'+pid);if(i)i.focus();},50); }
+function cancelDelete(){ confirmingId=null; renderPlayers(); }
+function onDelInput(pid){
+  const p=playerById(pid),inp=document.getElementById('del-input-'+pid),btn=document.getElementById('del-btn-'+pid);
+  const ok=inp.value.trim().toLowerCase()===p.name.toLowerCase();
+  inp.classList.toggle('valid',ok); btn.disabled=!ok;
+}
+async function confirmDelete(pid){
+  const p=playerById(pid);
+  const d=db.data[activeTypeId];
+  d.players=d.players.filter(pl=>pl.id!==pid);
+  d.matches=d.matches.filter(m=>m.winner!==pid);
+  d.sessions=d.sessions.map(s=>({...s,playerIds:s.playerIds.filter(id=>id!==pid)}));
+  present.delete(pid); confirmingId=null;
+  save(); renderSport(); showToast((p?p.name:'Joueur')+' supprimé(e)');
+  await api({action:'remove_player', type:typeName(), player_id:pid, player_name:p?.name});
+}
+async function addPlayer(){
+  const inp=document.getElementById('new-player-name');
+  const name=inp?inp.value.trim():''; if(!name) return;
+  const d=db.data[activeTypeId];
+  const pid=Date.now();
+  const color=COLORS[d.players.length%COLORS.length];
+  d.players.push({id:pid, name, color});
+  inp.value=''; save(); renderSport(); showToast(name+' ajouté(e)');
+  await api({action:'add_player', type:typeName(), player_id:pid, player_name:name, color});
+}
+
+// ─── TOAST ─────────────────────────────────────────────────────────────────
+function showToast(msg, kind='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+kind+' show';
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ─── START ─────────────────────────────────────────────────────────────────
+init();
+</script>
+</html>
