@@ -279,28 +279,13 @@ function setSyncing(v) {
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
 async function init() {
-  // Affiche d'abord le cache local pour une UI instantanée
+  // Source de vérité = localStorage
+  // N8N est utilisé uniquement pour persister les actions (POST)
   const hasLocal = loadLocal();
   if (hasLocal && db.types.length > 0) {
     renderTypeBar();
     selectType(db.types[0].id);
-  }
-
-  // Puis synchronise avec N8N en arrière-plan
-  const remote = await apiGet();
-  if (remote && remote.db) {
-    db = remote.db;
-    save();
-    renderTypeBar();
-    if (activeTypeId && db.data[activeTypeId]) {
-      renderSport();
-    } else if (db.types.length > 0) {
-      selectType(db.types[0].id);
-    } else {
-      goManage();
-    }
-  } else if (!hasLocal) {
-    // Aucune donnée locale ni distante — initialise vide
+  } else {
     goManage();
   }
 }
